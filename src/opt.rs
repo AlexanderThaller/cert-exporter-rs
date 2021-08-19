@@ -88,8 +88,6 @@ impl Opt {
                 .flatten()
                 .collect::<HashSet<_>>();
 
-            dbg!(&certs);
-
             metrics.update(certs).unwrap();
 
             drop(guard);
