@@ -12,7 +12,7 @@ use x509_parser::{
     pem::Pem,
 };
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct Certificate {
     pub subject: String,
     pub issuer: String,
