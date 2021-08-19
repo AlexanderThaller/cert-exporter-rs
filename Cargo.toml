@@ -17,6 +17,7 @@ thiserror = "1"
 x509-parser = "0.10"
 
 [profile.release]
+codegen-units = 1
 lto = "fat"
-panic = "abort"
 opt-level = 3
+panic = "abort"
