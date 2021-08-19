@@ -4,7 +4,6 @@ use thiserror::Error;
 use crate::certificate::read_certificates;
 
 mod certificate;
-use certificate::Certificate;
 
 #[derive(Debug, Error)]
 enum Error {
@@ -16,22 +15,35 @@ enum Error {
 }
 
 fn main() -> Result<(), Error> {
-    let cert_glob = glob::glob("/tmp/tmp.br7CRPnXdv-tmpdir/*.crt").expect("failed to parse glob");
+    let exporter =
+        prometheus_exporter::start("0.0.0.0:9184".parse().expect("failed to parse binding"))
+            .expect("failed to start prometheus exporter");
 
-    cert_glob
-        .into_iter()
-        .map(|entry| {
-            entry
-                .map(|path| read_certificates(&path).map_err(|e| Error::ReadCertificate(e, path)))
-                .map_err(Error::GlobError)
-        })
-        .filter_map(|result| {
-            match result {
-                Err(err) => { eprintln!("{}", err); None }
-                Ok(certificate) => Some(certificate),
-            }
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    loop {
+        let guard = exporter.wait_request();
 
-    Ok(())
+        let cert_glob =
+            glob::glob("/tmp/tmp.br7CRPnXdv-tmpdir/*.crt").expect("failed to parse glob");
+
+        let glob_entries = cert_glob
+            .into_iter()
+            .map(|entry| entry.map_err(Error::GlobError))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let certs = glob_entries
+            .into_iter()
+            .map(|path| read_certificates(&path).map_err(|e| Error::ReadCertificate(e, path)))
+            .filter_map(|result| {
+                if let Err(ref err) = result {
+                    eprintln!("{}", err);
+                };
+
+                result.ok()
+            })
+            .collect::<Vec<_>>();
+
+        dbg!(certs);
+
+        drop(guard);
+    }
 }
