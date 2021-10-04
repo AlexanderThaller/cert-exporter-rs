@@ -88,7 +88,7 @@ impl Opt {
                 .flatten()
                 .collect::<HashSet<_>>();
 
-            metrics.update(certs).unwrap();
+            metrics.update(certs);
 
             drop(guard);
         }

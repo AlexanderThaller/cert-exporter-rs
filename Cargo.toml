@@ -1,6 +1,6 @@
 [package]
 name = "cert-exporter-rs"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -18,3 +18,7 @@ x509-parser = "0.12"
 
 [dev-dependencies]
 pretty_assertions = "1"
+
+[profile.release]
+lto = "fat"
+opt-level = 3

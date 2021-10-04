@@ -55,7 +55,7 @@ impl TryFrom<X509Certificate<'_>> for Certificate {
         let common_names = x509
             .subject()
             .iter_common_name()
-            .map(|entry| entry.attr_value().as_str().map(|s| s.to_string()))
+            .map(|entry| entry.attr_value().as_str().map(ToString::to_string))
             .collect::<Result<_, _>>()
             .map_err(ParseError::ParseCommonNames)?;
 
