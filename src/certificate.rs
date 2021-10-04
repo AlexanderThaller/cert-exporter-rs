@@ -19,6 +19,7 @@ pub struct Certificate {
 
     pub common_names: Vec<String>,
 
+    pub time_to_expiration: std::time::Duration,
     pub not_before: NaiveDateTime,
     pub not_after: NaiveDateTime,
 }
@@ -58,13 +59,16 @@ impl TryFrom<X509Certificate<'_>> for Certificate {
             .collect::<Result<_, _>>()
             .map_err(ParseError::ParseCommonNames)?;
 
-        let not_before = NaiveDateTime::from_timestamp(x509.validity().not_before.timestamp(), 0);
-        let not_after = NaiveDateTime::from_timestamp(x509.validity().not_after.timestamp(), 0);
+        let validity = x509.validity();
+        let time_to_expiration = validity.time_to_expiration().unwrap_or_default();
+        let not_before = NaiveDateTime::from_timestamp(validity.not_before.timestamp(), 0);
+        let not_after = NaiveDateTime::from_timestamp(validity.not_after.timestamp(), 0);
 
         Ok(Self {
             subject,
             issuer,
             common_names,
+            time_to_expiration,
             not_before,
             not_after,
         })
@@ -89,4 +93,46 @@ pub fn read_certificates(path: impl AsRef<Path>) -> Result<Vec<Certificate>, Rea
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(certificates)
+}
+
+#[cfg(test)]
+mod test {
+    use chrono::{
+        NaiveDate,
+        NaiveDateTime,
+        NaiveTime,
+    };
+    use pretty_assertions::assert_eq;
+    use std::time::Duration;
+
+    use super::Certificate;
+
+    #[test]
+    fn read_certificates() {
+        let mut expected = vec![Certificate {
+            subject: "C=TE, ST=Test-State, L=Test-City, O=Test-Organisation, OU=Test-Section, \
+                      CN=example.net, Email=test@example.net"
+                .into(),
+            issuer: "C=TE, ST=Test-State, L=Test-City, O=Test-Organisation, OU=Test-Section, \
+                     CN=example.net, Email=test@example.net"
+                .into(),
+            common_names: vec!["example.net".into()],
+            time_to_expiration: Duration::from_nanos(0),
+            not_before: NaiveDateTime::new(
+                NaiveDate::from_ymd(2021, 08, 18),
+                NaiveTime::from_hms(09, 38, 11),
+            ),
+            not_after: NaiveDateTime::new(
+                NaiveDate::from_ymd(2022, 08, 18),
+                NaiveTime::from_hms(09, 38, 11),
+            ),
+        }];
+
+        let got = super::read_certificates("resources/test.crt").unwrap();
+
+        // Dynamic value can not test that so easily
+        expected[0].time_to_expiration = got[0].time_to_expiration;
+
+        assert_eq!(expected, got);
+    }
 }
