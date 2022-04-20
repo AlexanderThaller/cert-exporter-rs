@@ -1,7 +1,4 @@
-use std::{
-    collections::HashSet,
-    convert::TryInto,
-};
+use std::collections::HashSet;
 
 use prometheus_exporter::prometheus::{
     register_int_gauge_vec,
@@ -62,7 +59,7 @@ impl Metrics {
             cert.common_names.iter().for_each(|common_name| {
                 self.time_to_expiration
                     .with_label_values(&[common_name])
-                    .set(cert.time_to_expiration.as_secs().try_into().unwrap());
+                    .set(cert.time_to_expiration.whole_seconds());
 
                 self.not_before
                     .with_label_values(&[common_name])

@@ -19,7 +19,7 @@ pub struct Certificate {
 
     pub common_names: Vec<String>,
 
-    pub time_to_expiration: std::time::Duration,
+    pub time_to_expiration: time::Duration,
     pub not_before: NaiveDateTime,
     pub not_after: NaiveDateTime,
 }
@@ -27,7 +27,7 @@ pub struct Certificate {
 #[derive(Debug, Error)]
 pub enum ParseError {
     #[error("can not parse common names: {0}")]
-    ParseCommonNames(der_parser::error::BerError),
+    ParseCommonNames(x509_parser::der_parser::error::Error),
 }
 
 #[derive(Debug, Error)]
@@ -84,6 +84,7 @@ pub fn read_certificates(path: impl AsRef<Path>) -> Result<Vec<Certificate>, Rea
 
     let x509 = pems
         .iter()
+        .filter(|pem| pem.label == "CERTIFICATE")
         .map(|pem| pem.parse_x509().map_err(ReadError::ParseX509))
         .collect::<Result<Vec<_>, _>>()?;
 
@@ -103,12 +104,12 @@ mod test {
         NaiveTime,
     };
     use pretty_assertions::assert_eq;
-    use std::time::Duration;
+    use time::Duration;
 
     use super::Certificate;
 
     #[test]
-    fn read_certificates() {
+    fn read_certificate_file() {
         let mut expected = vec![Certificate {
             subject: "C=TE, ST=Test-State, L=Test-City, O=Test-Organisation, OU=Test-Section, \
                       CN=example.net, Email=test@example.net"
@@ -117,7 +118,7 @@ mod test {
                      CN=example.net, Email=test@example.net"
                 .into(),
             common_names: vec!["example.net".into()],
-            time_to_expiration: Duration::from_nanos(0),
+            time_to_expiration: Duration::nanoseconds(0),
             not_before: NaiveDateTime::new(
                 NaiveDate::from_ymd(2021, 08, 18),
                 NaiveTime::from_hms(09, 38, 11),
@@ -129,6 +130,33 @@ mod test {
         }];
 
         let got = super::read_certificates("resources/test.crt").unwrap();
+
+        // Dynamic value can not test that so easily
+        expected[0].time_to_expiration = got[0].time_to_expiration;
+
+        assert_eq!(expected, got);
+    }
+
+    #[test]
+    fn read_pem_file() {
+        let mut expected = vec![Certificate {
+            subject: "C=AU, ST=Some-State, O=Internet Widgits Pty Ltd".into(),
+            issuer: "C=AU, ST=Some-State, O=Internet Widgits Pty Ltd".into(),
+            common_names: vec![],
+            time_to_expiration: Duration::new(31535150, 464404684),
+            not_before: NaiveDateTime::new(
+                NaiveDate::from_ymd(2022, 04, 20),
+                NaiveTime::from_hms(12, 37, 01),
+            ),
+            not_after: NaiveDateTime::new(
+                NaiveDate::from_ymd(2023, 04, 20),
+                NaiveTime::from_hms(12, 37, 01),
+            ),
+        }];
+
+        let got = super::read_certificates("resources/test.pem").unwrap();
+
+        dbg!(&got);
 
         // Dynamic value can not test that so easily
         expected[0].time_to_expiration = got[0].time_to_expiration;
