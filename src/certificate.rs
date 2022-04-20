@@ -156,8 +156,6 @@ mod test {
 
         let got = super::read_certificates("resources/test.pem").unwrap();
 
-        dbg!(&got);
-
         // Dynamic value can not test that so easily
         expected[0].time_to_expiration = got[0].time_to_expiration;
 
