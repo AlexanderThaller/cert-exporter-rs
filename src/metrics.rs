@@ -13,17 +13,17 @@ pub enum Error {}
 
 #[derive(Debug)]
 pub struct Metrics {
-    time_to_expiration: IntGaugeVec,
-    not_before: IntGaugeVec,
     not_after: IntGaugeVec,
+    not_before: IntGaugeVec,
+    time_to_expiration: IntGaugeVec,
 }
 
 pub fn new() -> Metrics {
     const NAMESPACE: &str = "cert_exporter_rs";
 
-    let time_to_expiration = register_int_gauge_vec!(
-        format!("{}_time_to_expiration_seconds", NAMESPACE),
-        "time in seconds until when the certificate expires",
+    let not_after = register_int_gauge_vec!(
+        format!("{}_not_after_timestamp", NAMESPACE),
+        "unix time after which the certificate is invalid",
         &["common_name"]
     )
     .unwrap();
@@ -35,17 +35,28 @@ pub fn new() -> Metrics {
     )
     .unwrap();
 
-    let not_after = register_int_gauge_vec!(
-        format!("{}_not_after_timestamp", NAMESPACE),
-        "unix time after which the certificate is invalid",
+    let time_to_expiration = register_int_gauge_vec!(
+        format!("{}_time_to_expiration_seconds", NAMESPACE),
+        "time in seconds until when the certificate expires",
         &["common_name"]
     )
     .unwrap();
 
+    let version = register_int_gauge_vec!(
+        format!("{}_version", NAMESPACE),
+        "version of running instance of cert-exporter-rs",
+        &["version"]
+    )
+    .unwrap();
+
+    version
+        .with_label_values(&[structopt::clap::crate_version!()])
+        .set(1);
+
     Metrics {
-        time_to_expiration,
-        not_before,
         not_after,
+        not_before,
+        time_to_expiration,
     }
 }
 
