@@ -80,7 +80,7 @@ impl Opt {
                 .map(|path| read_certificates(&path).map_err(|e| Error::ReadCertificate(e, path)))
                 .filter_map(|result| {
                     if let Err(ref err) = result {
-                        eprintln!("{}", err);
+                        eprintln!("{err}");
                     };
 
                     result.ok()
